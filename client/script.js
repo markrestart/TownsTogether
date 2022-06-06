@@ -1,3 +1,42 @@
+// #region Player class
+class Player{
+    constructor(name){
+
+        this.speed = .15;
+
+        this.transform = new BABYLON.Mesh(name, scene);
+
+        this.model = null;
+    }
+
+    addModel = function(modelFile, textureFile) {
+        BABYLON.SceneLoader.ImportMeshAsync("", "/character/Model/", modelFile).then((result) => {
+            this.model = result.meshes[0];
+            this.model.parent = this.transform;
+            this.model.scaling = new BABYLON.Vector3(.01,.01,.01);
+            this.model.rotation.y = -Math.PI * .5;
+
+            var characterMat = new BABYLON.StandardMaterial("charMat", scene);
+            characterMat.emissiveTexture = new BABYLON.Texture("/character/Skins/" + textureFile, scene);
+            this.model.material = characterMat;
+
+            console.log(this.model.parent.name);
+        });
+    }
+
+    move = function(v){
+        v.normalize();
+        this.transform.position.x += v.x * this.speed;
+        this.transform.position.y += v.y * this.speed;
+        this.transform.position.z += v.z * this.speed;
+    }
+
+    remove = function(){
+        this.transform.dispose();
+    }
+}
+// #endregion
+
 // #region BABYLON init
 const canvas = document.createElement("canvas");
 document.body.appendChild(canvas);
@@ -15,26 +54,12 @@ var floorMaterial = new BABYLON.StandardMaterial("material", scene);
 floorMaterial.emissiveColor = new BABYLON.Color3(.62, 0.38, 0.16);
 floor.material = floorMaterial;
 
-var host = new BABYLON.Mesh("host", scene);
-
-BABYLON.SceneLoader.ImportMeshAsync("", "/character/Model/", "characterMedium.obj").then((result) => {
-    var character = result.meshes[0];
-    character.parent = host;
-    character.scaling = new BABYLON.Vector3(.01,.01,.01);
-    character.rotation.y = -Math.PI * .5;
-
-    var characterMat = new BABYLON.StandardMaterial("charMat", scene);
-    characterMat.emissiveTexture = new BABYLON.Texture("/character/Skins/survivorFemaleA.png", scene);
-    character.material = characterMat;
-});
+var host = new Player("host");
+host.addModel("characterMedium.obj","survivorFemaleA.png");
 
 window.addEventListener("resize", function(){
     engine.resize();
 });
-// #endregion
-
-// #region Player variables
-var speed = .15;
 // #endregion
 
 // #region Keyboard events
@@ -50,7 +75,7 @@ scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionM
 
 // #region Render loop
 var renderLoop = function () {
-    camera.setTarget(host.position);
+    camera.setTarget(host.transform.position);
     scene.render();
     var moved = false;
 
@@ -59,29 +84,25 @@ var renderLoop = function () {
     forward.normalize();
 
     if(inputMap["w"]){
-        host.position.x += forward.x * speed;
-        host.position.z += forward.z * speed;
+        host.move(forward);
         moved = true;
     }
     if(inputMap["s"]){
-        host.position.x -= forward.x * speed;
-        host.position.z -= forward.z * speed;
+        host.move(new BABYLON.Vector3(-forward.x,0,-forward.z));
         moved = true;
     }
     if(inputMap["a"]){
-        host.position.x -= forward.z * speed;
-        host.position.z += forward.x * speed;
+        host.move(new BABYLON.Vector3(-forward.z,0,forward.x));
         moved = true;
     }
     if(inputMap["d"]){
-        host.position.x += forward.z * speed;
-        host.position.z -= forward.x * speed;
+        host.move(new BABYLON.Vector3(forward.z,0,-forward.x));
         moved = true;
     }
     if(moved){
         var targetRotation = Math.atan2(forward.x, forward.z) + Math.PI * .5;
-        host.rotation.y = lerp(host.rotation.y,targetRotation,.12);
-        socket.emit('move', host.position);
+        host.transform.rotation.y = lerp(host.transform.rotation.y,targetRotation,.12);
+        socket.emit('move', host.transform.position, host.transform.rotation.y);
     }
 };
 engine.runRenderLoop(renderLoop);
@@ -92,21 +113,27 @@ engine.runRenderLoop(renderLoop);
 var activePlayers = [];
 
 const socket = io('/'); // Create our socket
-socket.emit('join-room', host.position);
-socket.on('user-connected', (userId, pos) => { // If a new user connect
+socket.emit('join-room', host.transform.position, host.transform.rotation);
+socket.on('user-connected', (userId, pos, rot) => { // If a new user connect
+    var player = new Player(userId);
+    player.addModel("characterMedium.obj", "zombieC.png");
+    player.transform.position = pos;
+    player.transform.rotation.y = rot;
+    activePlayers.push({id:userId, object:player});
     console.log("New user " + userId + ", joined");
-    var player = BABYLON.Mesh.CreateBox("box", 2, scene);
-    player.position = pos;
-    activePlayers.push({id:userId, object:player})
 });
 
-socket.on('move', (userId, position) => {
-    activePlayers.find(p => p.id == userId).object.position = position;
+socket.on('move', (userId, position, rotation) => {
+    var player = activePlayers.find(p => p.id == userId).object;
+    player.transform.position = position;
+    player.transform.rotation.y = rotation;
+    console.log(rotation);
+    console.log(player.transform.rotation);
 });
 
 socket.on('user-disconnected', userId => { // If a new user connect
     console.log("User " + userId + ", left");
-    activePlayers.find(p => p.id = userId).object.dispose();
+    activePlayers.find(p => p.id = userId).object.remove();
     activePlayers = activePlayers.filter(p => p.id != userId);
 });
 // #endregion

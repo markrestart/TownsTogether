@@ -15,14 +15,14 @@ var activePlayers = [];
 
 io.on('connection', socket => {
     // When someone attempts to join the room
-    socket.on('join-room', (position) => {
+    socket.on('join-room', (position, rotation) => {
         //socket.join(roomId);  // Join the room
-        socket.broadcast.emit('user-connected', socket.id, position); // Tell everyone else in the room that we joined
+        socket.broadcast.emit('user-connected', socket.id, position, rotation); // Tell everyone else in the room that we joined
         console.log(socket.id + " Joined");
         activePlayers.forEach(element => {
-            socket.emit('user-connected', element.id, element.pos); //Tell the newly connected user about the existing active players
+            socket.emit('user-connected', element.id, element.pos, element.rot); //Tell the newly connected user about the existing active players
         });
-        activePlayers.push({id:socket.id, pos:position});   //Add the newly conntected user to the array of active players
+        activePlayers.push({id:socket.id, pos:position, rot:rotation});   //Add the newly conntected user to the array of active players
         
         // Communicate the disconnection
         socket.on('disconnect', () => {
@@ -32,9 +32,10 @@ io.on('connection', socket => {
         });
     });
 
-    socket.on('move', pos =>{
+    socket.on('move', (pos, rot) =>{
         activePlayers.find(p => p.id == socket.id).pos = pos;
-        socket.broadcast.emit('move', socket.id, pos); //Communicate that a player has moved
+        activePlayers.find(p => p.id == socket.id).rot = rot;
+        socket.broadcast.emit('move', socket.id, pos, rot); //Communicate that a player has moved
     });
 });
 
