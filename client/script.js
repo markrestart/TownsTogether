@@ -1,6 +1,6 @@
+// #region BABYLON init
 const canvas = document.createElement("canvas");
 document.body.appendChild(canvas);
-
 
 var engine = new BABYLON.Engine(canvas);
 var scene = new BABYLON.Scene(engine);
@@ -31,13 +31,13 @@ BABYLON.SceneLoader.ImportMeshAsync("", "/character/Model/", "characterMedium.ob
 window.addEventListener("resize", function(){
     engine.resize();
 });
+// #endregion
 
-
-//Player variables
+// #region Player variables
 var speed = .15;
+// #endregion
 
-
-// Keyboard events
+// #region Keyboard events
 var inputMap ={};
 scene.actionManager = new BABYLON.ActionManager(scene);
 scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnKeyDownTrigger, function (evt) {								
@@ -46,7 +46,9 @@ scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionM
 scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnKeyUpTrigger, function (evt) {								
     inputMap[evt.sourceEvent.key] = evt.sourceEvent.type == "keydown";
 }));
+// #endregion
 
+// #region Render loop
 var renderLoop = function () {
     camera.setTarget(host.position);
     scene.render();
@@ -83,8 +85,9 @@ var renderLoop = function () {
     }
 };
 engine.runRenderLoop(renderLoop);
+// #endregion
 
-//Netcode!
+// #region Netcode!
 
 var activePlayers = [];
 
@@ -106,10 +109,10 @@ socket.on('user-disconnected', userId => { // If a new user connect
     activePlayers.find(p => p.id = userId).object.dispose();
     activePlayers = activePlayers.filter(p => p.id != userId);
 });
+// #endregion
 
-
-
-//Helpers!
+// #region Helpers!
 function lerp(A, B, t) {
     return A + (B - A) * t;
 }
+// #endregion
