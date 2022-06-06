@@ -9,21 +9,28 @@ var camera = new BABYLON.ArcRotateCamera("camera", 0, Math.PI * .25, 15, new BAB
 camera.attachControl(canvas, true);
 var light = new BABYLON.PointLight("light", new BABYLON.Vector3(10, 10, 0), scene);
 light.intensity = .5;
-
-var box = BABYLON.Mesh.CreateBox("box", 2, scene);
 var floor = BABYLON.Mesh.CreatePlane("plane", 40, scene);
 floor.rotation.x = Math.PI * .5;
-box.position.y = 1;
-
-var boxMaterial = new BABYLON.StandardMaterial("material", scene);
-boxMaterial.emissiveColor = new BABYLON.Color3(0, 0.58, 0.86);
-var floorMaterial = new BABYLON.StandardMaterial("material2", scene);
+var floorMaterial = new BABYLON.StandardMaterial("material", scene);
 floorMaterial.emissiveColor = new BABYLON.Color3(.62, 0.38, 0.16);
-box.material = boxMaterial;
 floor.material = floorMaterial;
 
+var host = new BABYLON.Mesh("host", scene);
+
+BABYLON.SceneLoader.ImportMeshAsync("", "/character/Model/", "characterMedium.obj").then((result) => {
+    var character = result.meshes[0];
+    character.parent = host;
+    character.scaling = new BABYLON.Vector3(.01,.01,.01);
+    character.rotation.y = -Math.PI * .5;
+
+    var characterMat = new BABYLON.StandardMaterial("charMat", scene);
+    characterMat.emissiveTexture = new BABYLON.Texture("/character/Skins/survivorFemaleA.png", scene);
+    character.material = characterMat;
+});
+
+
 //Player variables
-var speed = .05;
+var speed = .15;
 
 
 // Keyboard events
@@ -37,28 +44,39 @@ scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionM
 }));
 
 var renderLoop = function () {
-    camera.setTarget(box.position);
+    camera.setTarget(host.position);
     scene.render();
     var moved = false;
 
+    var forward = camera.getTarget().subtract(camera.position);
+    forward.y = 0;
+    forward.normalize();
+    console.log(forward);
+
     if(inputMap["w"]){
-        box.position.x -= speed;
+        host.position.x += forward.x * speed;
+        host.position.z += forward.z * speed;
         moved = true;
     }
     if(inputMap["s"]){
-        box.position.x += speed;
+        host.position.x -= forward.x * speed;
+        host.position.z -= forward.z * speed;
         moved = true;
     }
     if(inputMap["a"]){
-        box.position.z -= speed;
+        host.position.x -= forward.z * speed;
+        host.position.z += forward.x * speed;
         moved = true;
     }
     if(inputMap["d"]){
-        box.position.z += speed;
+        host.position.x += forward.z * speed;
+        host.position.z -= forward.x * speed;
         moved = true;
     }
     if(moved){
-        socket.emit('move', box.position);
+
+        host.rotation.y = lerp(host.rotation.y,Math.atan2(forward.x, forward.z) + Math.PI * .5,.12);
+        socket.emit('move', host.position);
     }
 };
 engine.runRenderLoop(renderLoop);
@@ -68,7 +86,7 @@ engine.runRenderLoop(renderLoop);
 var activePlayers = [];
 
 const socket = io('/'); // Create our socket
-socket.emit('join-room', box.position);
+socket.emit('join-room', host.position);
 socket.on('user-connected', (userId, pos) => { // If a new user connect
     console.log("New user " + userId + ", joined");
     var player = BABYLON.Mesh.CreateBox("box", 2, scene);
@@ -85,3 +103,10 @@ socket.on('user-disconnected', userId => { // If a new user connect
     activePlayers.find(p => p.id = userId).object.dispose();
     activePlayers = activePlayers.filter(p => p.id != userId);
 });
+
+
+
+//Helpers!
+function lerp(A, B, t) {
+    return A + (B - A) * t;
+}
