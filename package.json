@@ -1,4 +1,10 @@
 {
+  "name": "towns-together",
+  "version": "0.0.1",
+  "description": "An online social space for building and enjoying virtual environments with friends. ",
+  "scripts": {
+    "web": "npm start"
+  },
   "dependencies": {
     "express": "^4.18.1",
     "peer": "^0.6.1",
