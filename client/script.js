@@ -28,6 +28,10 @@ BABYLON.SceneLoader.ImportMeshAsync("", "/character/Model/", "characterMedium.ob
     character.material = characterMat;
 });
 
+window.addEventListener("resize", function(){
+    engine.resize();
+});
+
 
 //Player variables
 var speed = .15;
@@ -51,7 +55,6 @@ var renderLoop = function () {
     var forward = camera.getTarget().subtract(camera.position);
     forward.y = 0;
     forward.normalize();
-    console.log(forward);
 
     if(inputMap["w"]){
         host.position.x += forward.x * speed;
@@ -74,8 +77,8 @@ var renderLoop = function () {
         moved = true;
     }
     if(moved){
-
-        host.rotation.y = lerp(host.rotation.y,Math.atan2(forward.x, forward.z) + Math.PI * .5,.12);
+        var targetRotation = Math.atan2(forward.x, forward.z) + Math.PI * .5;
+        host.rotation.y = lerp(host.rotation.y,targetRotation,.12);
         socket.emit('move', host.position);
     }
 };
