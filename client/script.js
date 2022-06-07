@@ -14,21 +14,25 @@ class Player{
             this.model = result.meshes[0];
             this.model.parent = this.transform;
             this.model.scaling = new BABYLON.Vector3(.01,.01,.01);
-            this.model.rotation.y = -Math.PI * .5;
 
             var characterMat = new BABYLON.StandardMaterial("charMat", scene);
             characterMat.emissiveTexture = new BABYLON.Texture("/character/Skins/" + textureFile, scene);
             this.model.material = characterMat;
-
-            console.log(this.model.parent.name);
         });
     }
 
     move = function(v){
+        //Normalize input to ensure player object controls speed
         v.normalize();
+
+        //Apply movement
         this.transform.position.x += v.x * this.speed;
         this.transform.position.y += v.y * this.speed;
         this.transform.position.z += v.z * this.speed;
+
+        //Rotate towards the direction of movement
+        var targetRotation = Math.atan2(v.x, v.z);
+        this.transform.rotation.y = lerp(this.transform.rotation.y,targetRotation,.12);
     }
 
     remove = function(){
@@ -47,7 +51,7 @@ scene.clearColor = new BABYLON.Color3(0.8, 0.8, 0.8);
 var camera = new BABYLON.ArcRotateCamera("camera", 0, Math.PI * .25, 15, new BABYLON.Vector3(0, 0, 0), scene);
 camera.attachControl(canvas, true);
 var light = new BABYLON.PointLight("light", new BABYLON.Vector3(10, 10, 0), scene);
-light.intensity = .5;
+light.intensity = .1;
 var floor = BABYLON.Mesh.CreatePlane("plane", 40, scene);
 floor.rotation.x = Math.PI * .5;
 var floorMaterial = new BABYLON.StandardMaterial("material", scene);
@@ -77,31 +81,30 @@ scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionM
 var renderLoop = function () {
     camera.setTarget(host.transform.position);
     scene.render();
-    var moved = false;
 
     var forward = camera.getTarget().subtract(camera.position);
     forward.y = 0;
     forward.normalize();
+    var move = BABYLON.Vector3.Zero();
 
     if(inputMap["w"]){
-        host.move(forward);
-        moved = true;
+        move.x += forward.x;
+        move.z += forward.z
     }
     if(inputMap["s"]){
-        host.move(new BABYLON.Vector3(-forward.x,0,-forward.z));
-        moved = true;
+        move.x -= forward.x;
+        move.z -= forward.z
     }
     if(inputMap["a"]){
-        host.move(new BABYLON.Vector3(-forward.z,0,forward.x));
-        moved = true;
+        move.x -= forward.z;
+        move.z += forward.x
     }
     if(inputMap["d"]){
-        host.move(new BABYLON.Vector3(forward.z,0,-forward.x));
-        moved = true;
+        move.x += forward.z;
+        move.z -= forward.x
     }
-    if(moved){
-        var targetRotation = Math.atan2(forward.x, forward.z) + Math.PI * .5;
-        host.transform.rotation.y = lerp(host.transform.rotation.y,targetRotation,.12);
+    if(move.length() > 0){
+        host.move(move);
         socket.emit('move', host.transform.position, host.transform.rotation.y);
     }
 };
