@@ -2,7 +2,7 @@
 class Player{
     constructor(name){
 
-        this.speed = .15;
+        this.speed = .12;
 
         this.transform = new BABYLON.Mesh(name, scene);
 
@@ -11,13 +11,17 @@ class Player{
 
     addModel = function(modelFile, textureFile) {
         BABYLON.SceneLoader.ImportMeshAsync("", "/character/Model/", modelFile).then((result) => {
-            this.model = result.meshes[0];
+            this.model = result.meshes[1];
             this.model.parent = this.transform;
-            this.model.scaling = new BABYLON.Vector3(.01,.01,.01);
 
-            var characterMat = new BABYLON.StandardMaterial("charMat", scene);
-            characterMat.emissiveTexture = new BABYLON.Texture("/character/Skins/" + textureFile, scene);
-            this.model.material = characterMat;
+            //var characterMat = new BABYLON.StandardMaterial("charMat", scene);
+            //characterMat.diffuseTexture = new BABYLON.Texture("/character/Skins/" + textureFile, scene);
+            //this.model.material = characterMat;
+
+            this.model.material = scene.getMaterialByName("skin"+textureFile);
+
+            this.idleAnim = scene.getAnimationGroupByName("idle");
+            this.walkAnim = scene.getAnimationGroupByName("walk");
         });
     }
 
@@ -33,6 +37,8 @@ class Player{
         //Rotate towards the direction of movement
         var targetRotation = Math.atan2(v.x, v.z);
         this.transform.rotation.y = lerp(this.transform.rotation.y,targetRotation,.12);
+
+        this.walkAnim.play(true, 1.0, this.walkAnim.from, this.walkAnim.to, false);
     }
 
     remove = function(){
@@ -50,16 +56,16 @@ var scene = new BABYLON.Scene(engine);
 scene.clearColor = new BABYLON.Color3(0.8, 0.8, 0.8);
 var camera = new BABYLON.ArcRotateCamera("camera", 0, Math.PI * .25, 15, new BABYLON.Vector3(0, 0, 0), scene);
 camera.attachControl(canvas, true);
-var light = new BABYLON.PointLight("light", new BABYLON.Vector3(10, 10, 0), scene);
-light.intensity = .1;
+var light = new BABYLON.HemisphericLight("HemiLight", new BABYLON.Vector3(0, 1, 0), scene);
+light.intensity = .8;
 var floor = BABYLON.Mesh.CreatePlane("plane", 40, scene);
 floor.rotation.x = Math.PI * .5;
 var floorMaterial = new BABYLON.StandardMaterial("material", scene);
-floorMaterial.emissiveColor = new BABYLON.Color3(.62, 0.38, 0.16);
+floorMaterial.diffuseColor = new BABYLON.Color3(.62, 0.38, 0.16);
 floor.material = floorMaterial;
 
 var host = new Player("host");
-host.addModel("characterMedium.obj","survivorFemaleA.png");
+host.addModel("Character2.glb","01");
 
 window.addEventListener("resize", function(){
     engine.resize();
@@ -106,6 +112,9 @@ var renderLoop = function () {
     if(move.length() > 0){
         host.move(move);
         socket.emit('move', host.transform.position, host.transform.rotation.y);
+    }else if(host.idleAnim){
+        host.walkAnim.stop();
+        host.idleAnim.play(true, 1.0, host.idleAnim.from, host.idleAnim.to, false);
     }
 };
 engine.runRenderLoop(renderLoop);
