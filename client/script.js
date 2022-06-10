@@ -36,6 +36,12 @@ class Player{
 
         //Rotate towards the direction of movement
         var targetRotation = Math.atan2(v.x, v.z);
+        if(targetRotation - this.transform.rotation.y >= Math.PI){
+            targetRotation -= 2 * Math.PI;
+        }
+        if(this.transform.rotation.y - targetRotation >= Math.PI){
+            targetRotation += 2 * Math.PI;
+        }
         this.transform.rotation.y = lerp(this.transform.rotation.y,targetRotation,.12);
 
         this.walkAnim.play(true, 1.0, this.walkAnim.from, this.walkAnim.to, false);
