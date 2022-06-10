@@ -134,7 +134,7 @@ const socket = io('/'); // Create our socket
 socket.emit('join-room', host.transform.position, host.transform.rotation);
 socket.on('user-connected', (userId, pos, rot) => { // If a new user connect
     var player = new Player(userId);
-    player.addModel("characterMedium.obj", "zombieC.png");
+    player.addModel("Character2.glb","01");
     player.transform.position = pos;
     player.transform.rotation.y = rot;
     activePlayers.push({id:userId, object:player});
