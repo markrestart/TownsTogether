@@ -2,7 +2,7 @@
 class Player{
     constructor(name){
 
-        this.speed = .12;
+        this.speed = .05;
 
         this.transform = new BABYLON.Mesh(name, scene);
 
@@ -30,9 +30,13 @@ class Player{
         v.normalize();
 
         //Apply movement
-        this.transform.position.x += v.x * this.speed;
-        this.transform.position.y += v.y * this.speed;
-        this.transform.position.z += v.z * this.speed;
+        if(this.transform.position.x + v.x * this.speed > -floor.size/2 +1 && this.transform.position.x + v.x * this.speed < floor.size/2 -1){
+            this.transform.position.x += v.x * this.speed;
+        }
+
+        if(this.transform.position.z + v.z * this.speed > -floor.size/2 +1 && this.transform.position.z + v.z * this.speed < floor.size/2 -1){
+            this.transform.position.z += v.z * this.speed;
+        }
 
         //Rotate towards the direction of movement
         var targetRotation = Math.atan2(v.x, v.z);
@@ -44,11 +48,25 @@ class Player{
         }
         this.transform.rotation.y = lerp(this.transform.rotation.y,targetRotation,.12);
 
-        this.walkAnim.play(true, 1.0, this.walkAnim.from, this.walkAnim.to, false);
+        this.idleAnim.stop();
+        this.walkAnim.play(true);
     }
 
     remove = function(){
         this.transform.dispose();
+    }
+}
+// #endregion
+
+// #region Floor class
+class Floor{
+    constructor(size){
+        this.size = size;
+        this.mesh = BABYLON.Mesh.CreatePlane("plane", size, scene);
+        this.mesh.rotation.x = Math.PI * .5;
+        var floorMaterial = new BABYLON.StandardMaterial("material", scene);
+        floorMaterial.diffuseColor = new BABYLON.Color3(.62, 0.38, 0.16);
+        this.mesh.material = floorMaterial;
     }
 }
 // #endregion
@@ -62,13 +80,16 @@ var scene = new BABYLON.Scene(engine);
 scene.clearColor = new BABYLON.Color3(0.8, 0.8, 0.8);
 var camera = new BABYLON.ArcRotateCamera("camera", 0, Math.PI * .25, 15, new BABYLON.Vector3(0, 0, 0), scene);
 camera.attachControl(canvas, true);
+camera.inputs.attached.pointers.buttons =[0,1];
 var light = new BABYLON.HemisphericLight("HemiLight", new BABYLON.Vector3(0, 1, 0), scene);
 light.intensity = .8;
-var floor = BABYLON.Mesh.CreatePlane("plane", 40, scene);
-floor.rotation.x = Math.PI * .5;
-var floorMaterial = new BABYLON.StandardMaterial("material", scene);
-floorMaterial.diffuseColor = new BABYLON.Color3(.62, 0.38, 0.16);
-floor.material = floorMaterial;
+var floor = new Floor(40);
+
+		// Enable animation blending for all animations
+        scene.animationPropertiesOverride = new BABYLON.AnimationPropertiesOverride();
+        scene.animationPropertiesOverride.enableBlending = true;
+        scene.animationPropertiesOverride.blendingSpeed = 0.08;
+        scene.animationPropertiesOverride.loopMode = 1;
 
 var host = new Player("host");
 host.addModel("Character2.glb","01");
@@ -120,7 +141,7 @@ var renderLoop = function () {
         socket.emit('move', host.transform.position, host.transform.rotation.y);
     }else if(host.idleAnim){
         host.walkAnim.stop();
-        host.idleAnim.play(true, 1.0, host.idleAnim.from, host.idleAnim.to, false);
+        host.idleAnim.play(true);
     }
 };
 engine.runRenderLoop(renderLoop);
@@ -145,8 +166,6 @@ socket.on('move', (userId, position, rotation) => {
     var player = activePlayers.find(p => p.id == userId).object;
     player.transform.position = position;
     player.transform.rotation.y = rotation;
-    console.log(rotation);
-    console.log(player.transform.rotation);
 });
 
 socket.on('user-disconnected', userId => { // If a new user connect
