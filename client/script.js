@@ -80,6 +80,9 @@ var scene = new BABYLON.Scene(engine);
 scene.clearColor = new BABYLON.Color3(0.8, 0.8, 0.8);
 var camera = new BABYLON.ArcRotateCamera("camera", 0, Math.PI * .25, 15, new BABYLON.Vector3(0, 0, 0), scene);
 camera.attachControl(canvas, true);
+camera.lowerRadiusLimit = 4;
+camera.upperRadiusLimit = 50;
+camera.upperBetaLimit = Math.PI/2;
 camera.inputs.attached.pointers.buttons =[0,1];
 var light = new BABYLON.HemisphericLight("HemiLight", new BABYLON.Vector3(0, 1, 0), scene);
 light.intensity = .8;
@@ -171,7 +174,7 @@ scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionM
 
 // #region Render loop
 var renderLoop = function () {
-    camera.setTarget(host.transform.position);
+    camera.setTarget(host.transform.position.add(BABYLON.Vector3.Up().multiplyByFloats(0,3,0)));
     scene.render();
 
     var forward = camera.getTarget().subtract(camera.position);
