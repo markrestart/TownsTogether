@@ -47,6 +47,8 @@ class Player{
             targetRotation += 2 * Math.PI;
         }
         this.transform.rotation.y = lerp(this.transform.rotation.y,targetRotation,.12);
+        while(this.transform.rotation.y < 0){this.transform.rotation.y += 2 * Math.PI;}
+        while(this.transform.rotation.y > 2* Math.PI){this.transform.rotation.y -= 2 * Math.PI;}
 
         this.idleAnim.stop();
         this.walkAnim.play(true);
