@@ -85,17 +85,76 @@ var light = new BABYLON.HemisphericLight("HemiLight", new BABYLON.Vector3(0, 1, 
 light.intensity = .8;
 var floor = new Floor(40);
 
-		// Enable animation blending for all animations
-        scene.animationPropertiesOverride = new BABYLON.AnimationPropertiesOverride();
-        scene.animationPropertiesOverride.enableBlending = true;
-        scene.animationPropertiesOverride.blendingSpeed = 0.08;
-        scene.animationPropertiesOverride.loopMode = 1;
+// Enable animation blending for all animations
+scene.animationPropertiesOverride = new BABYLON.AnimationPropertiesOverride();
+scene.animationPropertiesOverride.enableBlending = true;
+scene.animationPropertiesOverride.blendingSpeed = 0.08;
+scene.animationPropertiesOverride.loopMode = 1;
 
 var host = new Player("host");
 host.addModel("Character2.glb","01");
 
 window.addEventListener("resize", function(){
     engine.resize();
+});
+// #endregion
+
+// #region GUI setup
+var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+var rect1 = new BABYLON.GUI.Rectangle();
+rect1.height = "80%";
+rect1.width = "80%;"
+rect1.cornerRadius = 20;
+rect1.color = "Orange";
+rect1.thickness = 10;
+rect1.background = "green";
+advancedTexture.addControl(rect1);
+
+var text1 = new BABYLON.GUI.TextBlock();
+text1.text = "Welcome to Towns Together";
+text1.color = "white";
+text1.fontSize = 48;
+text1.top = "-40%";
+text1.textWrapping = true;
+rect1.addControl(text1);
+
+var text2 = new BABYLON.GUI.TextBlock();
+text2.text = "Towns Together is an online social space. It is currently in development with big plans for the future.\n\nControls:\nClick and drag with the mouse to move your view. Use WASD to move around.\n\nCurrent version: Pre First Look";
+text2.color = "white";
+text2.fontSize = 16;
+text2.textWrapping = true;
+rect1.addControl(text2);
+
+var button = BABYLON.GUI.Button.CreateSimpleButton("close", "X");
+button.height = "40px";
+button.width = "40px;"
+button.color = "white";
+button.background = "red";
+button.cornerRadius = 15;
+button.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+button.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+button.top = 20;
+button.left = -20;
+rect1.addControl(button);  
+
+var button2 = BABYLON.GUI.Button.CreateSimpleButton("open", "?");
+button2.height = "30px";
+button2.width = "30px;"
+button2.color = "white";
+button2.background = "green";
+button2.cornerRadius = 15;
+button2.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+button2.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+button2.top = 20;
+button2.left = -20; 
+
+button.onPointerUpObservable.add(function(){
+    advancedTexture.removeControl(rect1);
+    advancedTexture.addControl(button2);
+});
+button2.onPointerUpObservable.add(function(){
+    advancedTexture.addControl(rect1);
+    advancedTexture.removeControl(button2);
 });
 // #endregion
 
