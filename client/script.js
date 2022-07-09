@@ -1,10 +1,10 @@
 // #region Player class
 class Player{
-    constructor(name){
+    constructor(id, name){
 
         this.speed = .05;
 
-        this.transform = new BABYLON.Mesh(name, scene);
+        this.transform = new BABYLON.Mesh(id, scene);
 
         this.model = null;
 
@@ -22,7 +22,7 @@ class Player{
         this.rect1.linkOffsetY = -330;
 
         this.label = new BABYLON.GUI.TextBlock();
-        this.label.text = name;
+        this.label.text = name == "" || name == undefined ? id : name;
         this.rect1.addControl(this.label);
 
         advancedTexture.removeControl(rect1);
@@ -32,7 +32,7 @@ class Player{
     }
 
     setName = function(name){
-        label.text = name;
+        this.label.text = name;
     }
 
     addModel = function(modelFile, textureFile) {
@@ -149,6 +149,20 @@ text1.top = "-40%";
 text1.textWrapping = true;
 rect1.addControl(text1);
 
+var inputText = new BABYLON.GUI.InputText("input", "Enter name here");
+inputText.width = 0.3;
+inputText.height = "50px";
+inputText.onFocusSelectAll = true;
+inputText.top = "-45%";
+inputText.background = "orange";
+inputText.focusedBackground = "yellow";
+inputText.color = "blue";
+inputText.onTextChangedObservable.add(function(){
+    host.setName(inputText.text);
+    socket.emit('set-name', inputText.text);
+});
+advancedTexture.addControl(inputText);
+
 var text2 = new BABYLON.GUI.TextBlock();
 text2.text = "Towns Together is an online social space. It is currently in development with big plans for the future.\n\nControls:\nClick and drag with the mouse to move your view. Use WASD to move around.\n\nCurrent version: Pre First Look";
 text2.color = "white";
@@ -181,10 +195,12 @@ button2.left = -20;
 
 button.onPointerUpObservable.add(function(){
     advancedTexture.removeControl(rect1);
+    advancedTexture.removeControl(inputText);
     advancedTexture.addControl(button2);
 });
 button2.onPointerUpObservable.add(function(){
     advancedTexture.addControl(rect1);
+    advancedTexture.addControl(inputText);
     advancedTexture.removeControl(button2);
 });
 // #endregion
@@ -255,8 +271,8 @@ var activePlayers = [];
 
 const socket = io('/'); // Create our socket
 socket.emit('join-room', host.transform.position, host.transform.rotation);
-socket.on('user-connected', (userId, pos, rot) => { // If a new user connect
-    var player = new Player(userId);
+socket.on('user-connected', (userId, pos, rot, name) => { // If a new user connect
+    var player = new Player(userId, name);
     player.addModel("Character2.glb","01");
     player.transform.position = pos;
     player.transform.rotation.y = rot;
@@ -268,6 +284,11 @@ socket.on('move', (userId, position, rotation) => {
     var player = activePlayers.find(p => p.id == userId).object;
     player.transform.position = position;
     player.transform.rotation.y = rotation;
+});
+
+socket.on('set-name', (userId, newName) =>{
+    var player = activePlayers.find(p => p.id == userId).object;
+    player.setName(newName);
 });
 
 socket.on('user-disconnected', userId => { // If a new user connect
