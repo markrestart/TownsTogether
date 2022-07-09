@@ -27,6 +27,8 @@ class Player{
 
         advancedTexture.removeControl(rect1);
         advancedTexture.addControl(rect1);
+
+        document.getElementById("welcome").play();
     }
 
     setName = function(name){
@@ -79,6 +81,8 @@ class Player{
     }
 
     remove = function(){
+        document.getElementById("goodbye").play();
+        advancedTexture.removeControl(this.rect1);
         this.transform.dispose();
     }
 }
