@@ -7,6 +7,30 @@ class Player{
         this.transform = new BABYLON.Mesh(name, scene);
 
         this.model = null;
+
+
+
+        this.rect1 = new BABYLON.GUI.Rectangle();
+        this.rect1.width = 0.2;
+        this.rect1.height = "40px";
+        this.rect1.cornerRadius = 20;
+        this.rect1.color = "Orange";
+        this.rect1.thickness = 4;
+        this.rect1.background = "green";
+        advancedTexture.addControl(this.rect1);
+        this.rect1.linkWithMesh(this.transform);   
+        this.rect1.linkOffsetY = -330;
+
+        this.label = new BABYLON.GUI.TextBlock();
+        this.label.text = name;
+        this.rect1.addControl(this.label);
+
+        advancedTexture.removeControl(rect1);
+        advancedTexture.addControl(rect1);
+    }
+
+    setName = function(name){
+        label.text = name;
     }
 
     addModel = function(modelFile, textureFile) {
@@ -96,9 +120,6 @@ scene.animationPropertiesOverride.enableBlending = true;
 scene.animationPropertiesOverride.blendingSpeed = 0.08;
 scene.animationPropertiesOverride.loopMode = 1;
 
-var host = new Player("host");
-host.addModel("Character2.glb","01");
-
 window.addEventListener("resize", function(){
     engine.resize();
 });
@@ -113,6 +134,7 @@ rect1.cornerRadius = 20;
 rect1.color = "Orange";
 rect1.thickness = 10;
 rect1.background = "green";
+rect1.zindex = -10;
 advancedTexture.addControl(rect1);
 
 var text1 = new BABYLON.GUI.TextBlock();
@@ -163,15 +185,27 @@ button2.onPointerUpObservable.add(function(){
 });
 // #endregion
 
+// #region local Player setup
+    var host = new Player("host");
+    host.addModel("Character2.glb","01");
+// #endregion
+
 // #region Keyboard events
 var inputMap ={};
 scene.actionManager = new BABYLON.ActionManager(scene);
 scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnKeyDownTrigger, function (evt) {								
-    inputMap[evt.sourceEvent.key] = evt.sourceEvent.type == "keydown";
+    inputMap[evt.sourceEvent.key.toLowerCase()] = evt.sourceEvent.type == "keydown";
 }));
 scene.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnKeyUpTrigger, function (evt) {								
-    inputMap[evt.sourceEvent.key] = evt.sourceEvent.type == "keydown";
+    inputMap[evt.sourceEvent.key.toLowerCase()] = evt.sourceEvent.type == "keydown";
 }));
+
+window.addEventListener("focusout",function(){
+    inputMap["w"] = false;
+    inputMap["a"] = false;
+    inputMap["s"] = false;
+    inputMap["d"] = false;
+});
 // #endregion
 
 // #region Render loop
