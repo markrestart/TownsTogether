@@ -8,10 +8,11 @@ class Player{
 
         this.model = null;
 
-
+        this.isNetwork = false;
+        this.lastMove = 0;
 
         this.rect1 = new BABYLON.GUI.Rectangle();
-        this.rect1.width = 0.2;
+        this.rect1.width = "300px";
         this.rect1.height = "40px";
         this.rect1.cornerRadius = 20;
         this.rect1.color = "Orange";
@@ -19,14 +20,16 @@ class Player{
         this.rect1.background = "green";
         advancedTexture.addControl(this.rect1);
         this.rect1.linkWithMesh(this.transform);   
-        this.rect1.linkOffsetY = -330;
+        this.rect1.linkOffsetY = -200;
 
         this.label = new BABYLON.GUI.TextBlock();
         this.label.text = name == "" || name == undefined ? id : name;
         this.rect1.addControl(this.label);
 
-        advancedTexture.removeControl(rect1);
-        advancedTexture.addControl(rect1);
+        if(isMenuOpen){
+            advancedTexture.removeControl(rect1);
+            advancedTexture.addControl(rect1);
+        }
 
         document.getElementById("welcome").play();
     }
@@ -37,6 +40,7 @@ class Player{
 
     addModel = function(modelFile, textureFile) {
         BABYLON.SceneLoader.ImportMeshAsync("", "/character/Model/", modelFile).then((result) => {
+            console.log(result.animationGroups);
             this.model = result.meshes[1];
             this.model.parent = this.transform;
 
@@ -46,8 +50,8 @@ class Player{
 
             this.model.material = scene.getMaterialByName("skin"+textureFile);
 
-            this.idleAnim = scene.getAnimationGroupByName("idle");
-            this.walkAnim = scene.getAnimationGroupByName("walk");
+            this.idleAnim = result.animationGroups[0];
+            this.walkAnim = result.animationGroups[1];
         });
     }
 
@@ -130,6 +134,7 @@ window.addEventListener("resize", function(){
 // #endregion
 
 // #region GUI setup
+var isMenuOpen = true;
 var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
 var rect1 = new BABYLON.GUI.Rectangle();
 rect1.height = "80%";
@@ -197,17 +202,19 @@ button.onPointerUpObservable.add(function(){
     advancedTexture.removeControl(rect1);
     advancedTexture.removeControl(inputText);
     advancedTexture.addControl(button2);
+    isMenuOpen = false;
 });
 button2.onPointerUpObservable.add(function(){
     advancedTexture.addControl(rect1);
     advancedTexture.addControl(inputText);
     advancedTexture.removeControl(button2);
+    isMenuOpen = true;
 });
 // #endregion
 
 // #region local Player setup
     var host = new Player("host");
-    host.addModel("Character2.glb","01");
+    host.addModel("Character3.glb","02");
 // #endregion
 
 // #region Keyboard events
@@ -261,6 +268,21 @@ var renderLoop = function () {
         host.walkAnim.stop();
         host.idleAnim.play(true);
     }
+
+    const d = new Date();
+    activePlayers.forEach(p => {
+        if(p.object.model){
+            if(p.object.lastMove + 100 > d.getTime()){
+                console.log(p.object.walkAnim.name);
+                p.object.idleAnim.stop();
+                p.object.walkAnim.play(true);
+            }else{
+                console.log(p.object.idleAnim.name);
+                p.object.walkAnim.stop();
+                p.object.idleAnim.play(true);
+            }
+        }
+    });
 };
 engine.runRenderLoop(renderLoop);
 // #endregion
@@ -273,6 +295,7 @@ const socket = io('/'); // Create our socket
 socket.emit('join-room', host.transform.position, host.transform.rotation);
 socket.on('user-connected', (userId, pos, rot, name) => { // If a new user connect
     var player = new Player(userId, name);
+    player.isNetwork = true;
     player.addModel("Character2.glb","01");
     player.transform.position = pos;
     player.transform.rotation.y = rot;
@@ -284,6 +307,8 @@ socket.on('move', (userId, position, rotation) => {
     var player = activePlayers.find(p => p.id == userId).object;
     player.transform.position = position;
     player.transform.rotation.y = rotation;
+    const d = new Date();
+    player.lastMove = d.getTime();
 });
 
 socket.on('set-name', (userId, newName) =>{
