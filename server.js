@@ -20,9 +20,9 @@ io.on('connection', socket => {
         socket.broadcast.emit('user-connected', socket.id, position, rotation); // Tell everyone else in the room that we joined
         console.log(socket.id + " Joined");
         activePlayers.forEach(element => {
-            socket.emit('user-connected', element.id, element.pos, element.rot, element.name); //Tell the newly connected user about the existing active players
+            socket.emit('user-connected', element.id, element.pos, element.rot, element.name, element.model); //Tell the newly connected user about the existing active players
         });
-        activePlayers.push({id:socket.id, pos:position, rot:rotation, name:""});   //Add the newly conntected user to the array of active players
+        activePlayers.push({id:socket.id, pos:position, rot:rotation, name:"", model:""});   //Add the newly conntected user to the array of active players
         
         // Communicate the disconnection
         socket.on('disconnect', () => {
@@ -41,6 +41,11 @@ io.on('connection', socket => {
     socket.on('set-name', (newName) =>{
         activePlayers.find(p => p.id == socket.id).name = newName;
         socket.broadcast.emit('set-name', socket.id, newName); //Communicate that a player has a new name
+    });
+
+    socket.on('change-model', (newModel) =>{
+        activePlayers.find(p => p.id == socket.id).model = newModel;
+        socket.broadcast.emit('change-model', socket.id, newModel); //Communicate that a player has a new name
     });
 });
 

@@ -29,6 +29,12 @@ class Player{
         if(isMenuOpen){
             advancedTexture.removeControl(rect1);
             advancedTexture.addControl(rect1);
+
+            advancedTexture.removeControl(rect2);
+            advancedTexture.addControl(rect2);
+
+            advancedTexture.removeControl(inputText);
+            advancedTexture.addControl(inputText);
         }
 
         document.getElementById("welcome").play();
@@ -38,17 +44,14 @@ class Player{
         this.label.text = name;
     }
 
-    addModel = function(modelFile, textureFile) {
+    addModel = function(modelFile) {
+        if(this.model){this.model.dispose();}
+
+        if(modelFile == undefined || modelFile == ""){modelFile = "Character3.glb";}
+
         BABYLON.SceneLoader.ImportMeshAsync("", "/character/Model/", modelFile).then((result) => {
-            console.log(result.animationGroups);
             this.model = result.meshes[1];
             this.model.parent = this.transform;
-
-            //var characterMat = new BABYLON.StandardMaterial("charMat", scene);
-            //characterMat.diffuseTexture = new BABYLON.Texture("/character/Skins/" + textureFile, scene);
-            //this.model.material = characterMat;
-
-            this.model.material = scene.getMaterialByName("skin"+textureFile);
 
             this.idleAnim = result.animationGroups[0];
             this.walkAnim = result.animationGroups[1];
@@ -137,14 +140,26 @@ window.addEventListener("resize", function(){
 var isMenuOpen = true;
 var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
 var rect1 = new BABYLON.GUI.Rectangle();
-rect1.height = "80%";
+rect1.height = "50%";
 rect1.width = "80%;"
 rect1.cornerRadius = 20;
 rect1.color = "Orange";
 rect1.thickness = 10;
 rect1.background = "green";
 rect1.zindex = -10;
+rect1.top = "15%";
 advancedTexture.addControl(rect1);
+
+var rect2 = new BABYLON.GUI.Rectangle();
+rect2.height = "20%";
+rect2.width = "80%;"
+rect2.cornerRadius = 20;
+rect2.color = "Orange";
+rect2.thickness = 10;
+rect2.background = "green";
+rect2.zindex = -10;
+rect2.top = "-25%";
+advancedTexture.addControl(rect2);
 
 var text1 = new BABYLON.GUI.TextBlock();
 text1.text = "Welcome to Towns Together";
@@ -198,14 +213,74 @@ button2.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
 button2.top = 20;
 button2.left = -20; 
 
+var skinButton1 = BABYLON.GUI.Button.CreateSimpleButton("sOne", "1");
+var skinButton2 = BABYLON.GUI.Button.CreateSimpleButton("sTwo", "2");
+var skinButton3 = BABYLON.GUI.Button.CreateSimpleButton("sThree", "3");
+var skinButton4 = BABYLON.GUI.Button.CreateSimpleButton("sFour", "4");
+skinButton1.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+skinButton2.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+skinButton3.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+skinButton4.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+skinButton1.color = "yellow";
+skinButton2.color = "yellow";
+skinButton3.color = "yellow";
+skinButton4.color = "yellow";
+skinButton1.background = "orange";
+skinButton2.background = "orange";
+skinButton3.background = "orange";
+skinButton4.background = "orange";
+
+skinButton1.width = "100px";
+skinButton2.width = "100px";
+skinButton3.width = "100px";
+skinButton4.width = "100px";
+skinButton1.height = "100px";
+skinButton2.height = "100px";
+skinButton3.height = "100px";
+skinButton4.height = "100px";
+
+skinButton1.top = 25;
+skinButton2.top = 25;
+skinButton3.top = 25;
+skinButton4.top = 25;
+skinButton1.left = -300;
+skinButton2.left = -100;
+skinButton3.left = 100;
+skinButton4.left = 300;
+
+rect2.addControl(skinButton1);
+rect2.addControl(skinButton2);
+rect2.addControl(skinButton3);
+rect2.addControl(skinButton4);
+
+skinButton1.onPointerUpObservable.add(function(){
+    host.addModel("Character.glb");
+    socket.emit('change-model', "Character.glb");
+})
+skinButton2.onPointerUpObservable.add(function(){
+    host.addModel("Character1.glb");
+    socket.emit('change-model', "Character1.glb");
+})
+skinButton3.onPointerUpObservable.add(function(){
+    host.addModel("Character2.glb");
+    socket.emit('change-model', "Character2.glb");
+})
+skinButton4.onPointerUpObservable.add(function(){
+    host.addModel("Character3.glb");
+    socket.emit('change-model', "Character3.glb");
+})
+
+
 button.onPointerUpObservable.add(function(){
     advancedTexture.removeControl(rect1);
+    advancedTexture.removeControl(rect2);
     advancedTexture.removeControl(inputText);
     advancedTexture.addControl(button2);
     isMenuOpen = false;
 });
 button2.onPointerUpObservable.add(function(){
     advancedTexture.addControl(rect1);
+    advancedTexture.addControl(rect2);
     advancedTexture.addControl(inputText);
     advancedTexture.removeControl(button2);
     isMenuOpen = true;
@@ -214,7 +289,7 @@ button2.onPointerUpObservable.add(function(){
 
 // #region local Player setup
     var host = new Player("host");
-    host.addModel("Character3.glb","02");
+    host.addModel("Character3.glb");
 // #endregion
 
 // #region Keyboard events
@@ -273,11 +348,9 @@ var renderLoop = function () {
     activePlayers.forEach(p => {
         if(p.object.model){
             if(p.object.lastMove + 100 > d.getTime()){
-                console.log(p.object.walkAnim.name);
                 p.object.idleAnim.stop();
                 p.object.walkAnim.play(true);
             }else{
-                console.log(p.object.idleAnim.name);
                 p.object.walkAnim.stop();
                 p.object.idleAnim.play(true);
             }
@@ -293,10 +366,10 @@ var activePlayers = [];
 
 const socket = io('/'); // Create our socket
 socket.emit('join-room', host.transform.position, host.transform.rotation);
-socket.on('user-connected', (userId, pos, rot, name) => { // If a new user connect
+socket.on('user-connected', (userId, pos, rot, name, modelName) => { // If a new user connect
     var player = new Player(userId, name);
     player.isNetwork = true;
-    player.addModel("Character2.glb","01");
+    player.addModel(modelName);
     player.transform.position = pos;
     player.transform.rotation.y = rot;
     activePlayers.push({id:userId, object:player});
@@ -314,6 +387,11 @@ socket.on('move', (userId, position, rotation) => {
 socket.on('set-name', (userId, newName) =>{
     var player = activePlayers.find(p => p.id == userId).object;
     player.setName(newName);
+});
+
+socket.on('change-model', (userId, newModel) =>{
+    var player = activePlayers.find(p => p.id == userId).object;
+    player.addModel(newModel);
 });
 
 socket.on('user-disconnected', userId => { // If a new user connect
