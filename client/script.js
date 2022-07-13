@@ -62,6 +62,8 @@ class Player{
         //Normalize input to ensure player object controls speed
         v.normalize();
 
+        v = floor.PlayerMove(this.transform.position, v.x, v.z);
+
         //Apply movement
         if(this.transform.position.x + v.x * this.speed > -floor.size/2 +1 && this.transform.position.x + v.x * this.speed < floor.size/2 -1){
             this.transform.position.x += v.x * this.speed;
@@ -95,6 +97,32 @@ class Player{
 }
 // #endregion
 
+//region Item class
+class Item{
+    constructor(v, modelFile){
+        this.isInWorld = true;
+        this.transform = new BABYLON.Mesh("item", scene);
+        this.PlaceInWorld(v);
+
+        if(modelFile == undefined || modelFile == ""){modelFile = "default.glb";}
+
+        BABYLON.SceneLoader.ImportMeshAsync("", "/items/", modelFile).then((result) => {
+            this.model = result.meshes[1];
+            this.model.parent = this.transform;
+            this.model.scaling = new BABYLON.Vector3(15,15,15);
+        });
+    }
+
+    PlaceInWorld = function(v){
+        this.transform.position.x = v.x;
+        this.transform.position.z = v.z;
+    }
+
+    PickupByPlayer = function(player){
+
+    }
+}
+
 // #region Floor class
 class Floor{
     constructor(size){
@@ -104,6 +132,60 @@ class Floor{
         var floorMaterial = new BABYLON.StandardMaterial("material", scene);
         floorMaterial.diffuseColor = new BABYLON.Color3(.62, 0.38, 0.16);
         this.mesh.material = floorMaterial;
+    }
+
+    PlayerMove = function(startPos, xMove, zMove){
+        var x = xMove;
+        var z = zMove;
+
+        const collisionDist = 1.8;
+
+        worldItems.forEach(i => {
+            let distX = startPos.x + xMove - i.transform.position._x;
+            let distZ = startPos.z + zMove - i.transform.position._z;
+            if(distX * distX + distZ * distZ <= collisionDist * collisionDist){
+                let length = Math.sqrt(distX * distX + distZ * distZ) || 1;
+                let unitX = distX/length;
+                let unitZ = distZ/length;
+                let endX = i.transform.position._x + collisionDist * unitX;
+                let endZ = i.transform.position._z + collisionDist * unitZ;
+
+                x = endX - startPos.x;
+                z = endZ - startPos.z
+            }
+        });
+
+        
+        activePlayers.forEach(p => {
+            let distX = startPos.x + xMove - p.object.transform.position._x;
+            let distZ = startPos.z + zMove - p.object.transform.position._z;
+            if(distX * distX + distZ * distZ <= collisionDist * collisionDist){
+                let length = Math.sqrt(distX * distX + distZ * distZ) || 1;
+                let unitX = distX/length;
+                let unitZ = distZ/length;
+                let endX = p.object.transform.position._x + collisionDist * unitX;
+                let endZ = p.object.transform.position._z + collisionDist * unitZ;
+
+                x = endX - startPos.x;
+                z = endZ - startPos.z
+            }
+        });
+
+        if(startPos.x + x <= -this.size/2){
+            x -= x + startPos.x + x -this.size/2;
+        }
+        if(startPos.x + x >= this.size/2){
+            x -= x - startPos.x - x +this.size/2;
+        }
+
+        if(startPos.z + z <= -this.size/2){
+            z -= z + startPos.z + z -this.size/2;
+        } 
+        if(startPos.z + z >= this.size/2){
+            z -= z - startPos.z - z +this.size/2;
+        }
+
+        return {'x':x, 'z':z};
     }
 }
 // #endregion
@@ -360,10 +442,13 @@ var renderLoop = function () {
 engine.runRenderLoop(renderLoop);
 // #endregion
 
-// #region Netcode!
-
+// #region room data
 var activePlayers = [];
+var worldItems = [];
+worldItems.push(new Item({x:9,z:5}));
+// #endregion
 
+// #region Netcode!
 const socket = io('/'); // Create our socket
 socket.emit('join-room', host.transform.position, host.transform.rotation);
 socket.on('user-connected', (userId, pos, rot, name, modelName) => { // If a new user connect
